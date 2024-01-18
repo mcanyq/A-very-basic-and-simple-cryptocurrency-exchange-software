@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kripto Borsası</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f8f9fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    #crypto-container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      text-align: center;
+    }
+
+    .crypto-price {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #3498db;
+    }
+
+    .real-time-prices p {
+      margin: 10px 0;
+      color: #555;
+    }
+
+    .crypto-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .crypto-input {
+      margin-bottom: 10px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .crypto-button {
+      padding: 10px;
+      cursor: pointer;
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .transaction-history, .account-info, .crypto-portfolio {
+      margin-top: 20px;
+      border-top: 1px solid #ddd;
+      padding-top: 20px;
+    }
+
+    .transaction-history h2,
+    .account-info h2,
+    .crypto-portfolio h2,
+    .real-time-prices h2 {
+      color: #3498db;
+    }
+
+    .transaction-history p,
+    .account-info p,
+    .crypto-portfolio p {
+      margin: 10px 0;
+      color: #555;
+    }
+
+    .profit {
+      color: green;
+    }
+
+    .loss {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+
+<div id="crypto-container">
+  <div class="real-time-prices" id="real-time-prices">
+    <h2>Gerçek Zamanlı Fiyatlar</h2>
+  </div>
+  <div class="crypto-form">
+    <label for="crypto-amount">Miktar:</label>
+    <input type="number" id="crypto-amount" class="crypto-input" placeholder="0">
+    <label for="crypto-symbol">Kripto Birimi (BTC, ETH, XRP):</label>
+    <input type="text" id="crypto-symbol" class="crypto-input" placeholder="BTC">
+    <button onclick="buyCrypto()" class="crypto-button">Kripto Satın Al</button>
+    <button onclick="sellCrypto()" class="crypto-button">Kripto Sat</button>
+  </div>
+
+  <div class="transaction-history" id="transaction-history">
+    <h2>İşlem Geçmişi</h2>
+  </div>
+
+  <div class="account-info" id="account-info">
+    <h2>Hesap Bilgileri</h2>
+    <p id="balance-info">Bakiye: $0</p>
+    <p id="crypto-amount-info">Toplam Kripto Miktarı: 0 BTC</p>
+    <p id="profit-loss-info">Kar/Zarar: $0</p>
+  </div>
+
+  <div class="crypto-portfolio" id="crypto-portfolio">
+    <h2>Kripto Portföyü</h2>
+  </div>
+</div>
+
+<script>
+  let cryptoBalance = 10000; // Başlangıç bakiyesi
+  let cryptoAmount = 0; // Başlangıç kripto miktarı
+  let totalProfitLoss = 0; // Toplam kar/zarar
+  let transactionHistory = document.getElementById('transaction-history');
+  let balanceInfo = document.getElementById('balance-info');
+  let cryptoAmountInfo = document.getElementById('crypto-amount-info');
+  let profitLossInfo = document.getElementById('profit-loss-info');
+  let cryptoPortfolio = document.getElementById('crypto-portfolio');
+  let realTimePrices = document.getElementById('real-time-prices');
+
+  function updateBalance() {
+    balanceInfo.innerText = `Bakiye: $${cryptoBalance.toFixed(2)}`;
+    cryptoAmountInfo.innerText = `Toplam Kripto Miktarı: ${cryptoAmount.toFixed(8)} BTC`;
+    profitLossInfo.innerText = `Kar/Zarar: $${totalProfitLoss.toFixed(2)}`;
+  }
+
+  function applyTransactionInterest() {
+    const transactionInterestRate = 0.01; // İşlem başı %0.01 faiz oranı
+    const transactionInterest = cryptoBalance * transactionInterestRate;
+    cryptoBalance += transactionInterest;
+    updateBalance();
+    addToTransactionHistory(`İşlem Başına Faiz Eklendi: $${transactionInterest.toFixed(2)}`);
+  }
+
+  function buyCrypto() {
+    applyTransactionInterest(); // Her alım öncesinde faiz uygula
+    const amount = parseFloat(document.getElementById('crypto-amount').value);
+    const symbol = document.getElementById('crypto-symbol').value.toUpperCase();
+    
+    if (isNaN(amount) || amount <= 0 || !isValidCryptoSymbol(symbol)) {
+      alert('Geçerli bir miktar ve kripto birimi girin.');
+      return;
+    }
+
+    const price = getRealTimePrice(symbol); // Gerçek bir kripto borsası API'si kullanılmalıdır.
+    const totalCost = amount * price;
+
+    if (cryptoBalance >= totalCost) {
+      cryptoBalance -= totalCost;
+      cryptoAmount += amount;
+      totalProfitLoss -= totalCost; // Alış işlemi, kar/zararı düşer
+      updateBalance();
+      addToTransactionHistory(`Satın Alındı: ${amount.toFixed(8)} ${symbol} - Toplam Tutar: $${totalCost.toFixed(2)}`);
+      addToCryptoPortfolio(amount, symbol);
+    } else {
+      alert('Yetersiz bakiye!');
+    }
+  }
+
+  function sellCrypto() {
+    applyTransactionInterest(); // Her satış öncesinde faiz uygula
+    const amount = parseFloat(document.getElementById('crypto-amount').value);
+    const symbol = document.getElementById('crypto-symbol').value.toUpperCase();
+    
+    if (isNaN(amount) || amount <= 0 || !isValidCryptoSymbol(symbol)) {
+      alert('Geçerli bir miktar ve kripto birimi girin.');
+      return;
+    }
+
+    if (cryptoAmount >= amount) {
+      const price = getRealTimePrice(symbol); // Gerçek bir kripto borsası API'si kullanılmalıdır.
+      const totalEarnings = amount * price;
+      const profitLoss = totalEarnings - (amount * getRealTimePrice(symbol)); // Satış işlemi, kar/zararı hesapla
+
+      cryptoBalance += totalEarnings;
+      cryptoAmount -= amount;
+      totalProfitLoss += profitLoss; // Satış işlemi, kar/zararı artır
+      updateBalance();
+      addToTransactionHistory(`Satıldı: ${amount.toFixed(8)} ${symbol} - Toplam Kazanç: $${totalEarnings.toFixed(2)}`);
+      addToCryptoPortfolio(amount, symbol);
+    } else {
+      alert('Yetersiz kripto miktarı!');
+    }
+  }
+
+  function addToTransactionHistory(transaction) {
+    const transactionElement = document.createElement('p');
+    transactionElement.innerText = transaction;
+    transactionHistory.appendChild(transactionElement);
+  }
+
+  function addToCryptoPortfolio(amount, symbol) {
+    const portfolioElement = document.createElement('p');
+    portfolioElement.innerText = `+ ${amount.toFixed(8)} ${symbol}`;
+    cryptoPortfolio.appendChild(portfolioElement);
+  }
+
+  function isValidCryptoSymbol(symbol) {
+    const validSymbols = ['BTC', 'ETH', 'XRP']; // Gerçek bir kripto borsası API'si kullanılmalıdır.
+    return validSymbols.includes(symbol);
+  }
+
+  function getRealTimePrice(symbol) {
+    // Mock API - Gerçek bir kripto borsası API'si kullanılmalıdır.
+    const prices = {
+      'BTC': 10000,
+      'ETH': 300,
+      'XRP': 0.5
+    };
+    // Rastgele artış veya düşüş ekleyelim (örnek olarak, 1 saniyede 0.1 artış veya düşüş)
+    const randomChange = Math.random() * 0.1 - 0.05;
+    prices[symbol] += randomChange;
+    return prices[symbol];
+  }
+
+  function displayRealTimePrices() {
+    realTimePrices.innerHTML = ''; // Her güncelleme öncesi temizle
+    for (const symbol of ['BTC', 'ETH', 'XRP']) {
+      const priceElement = document.createElement('p');
+      priceElement.innerText = `${symbol} Fiyatı: $${getRealTimePrice(symbol).toFixed(2)}`;
+      realTimePrices.appendChild(priceElement);
+    }
+  }
+
+  // İşlem başına faiz uygula
+  setInterval(applyTransactionInterest, 60000); // 1 dakika = 60000 milisaniye
+  // Gerçek zamanlı fiyatları göster
+  setInterval(displayRealTimePrices, 1000); // 1 saniye = 1000 milisaniye
+  // İlk bakiye ayarlaması
+  updateBalance();
+</script>
+
+</body>
+</html>
